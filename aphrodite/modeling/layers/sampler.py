@@ -638,48 +638,50 @@ def _apply_dry(
         if multiplier == 0:
             continue  # Skip processing for this sequence
         # Get the last token
-        last_token = input_ids_row[-1].item()
-
+        # Use normal Python data types for improved performance
+        input_ids = input_ids_row.tolist()
+        last_token = input_ids[-1]
+        sequence_breakers_i = sequence_breakers[i]
         # Skip if last token is a sequence breaker
-        if last_token in sequence_breakers_ids:
+        if last_token in :
             continue
 
-        # Find matches of the last token, excluding the last position
-        match_indices = (input_ids_row[:-1] == last_token).nonzero()
+        # Exclude the last token as it always matches.
+        match_indices = []
+        for idx, val in enumerate(input_ids[:-1]):
+            if val == last_token:
+                match_indices.append(idx)
 
-        # Track max matching sequence length for each potential next token
+        # Stores the maximum matching sequence length
+        # for each token immediately following the sequence in the input.
         match_lengths = {}
 
         # Process each match
-        for idx in match_indices:
-            # Convert to scalar
-            idx = idx.item()
+        for i in match_indices:
+            next_token = input_ids[i + 1]
             
-            # Get the token that followed this match in the input
-            next_token = input_ids_row[idx + 1].item()
-
             # Skip if next token is a sequence breaker
-            if next_token in sequence_breakers_ids:
+            if next_token in sequence_breakers_i:
                 continue
 
-            # We found last_token matches at this index, so match length starts
-            # at 1
+            # We have already found that `last_token` matches at this index,
+            # so the match is at least of length 1.
             match_length = 1
 
-            # Try to extend match backwards
+            # Extend the match backwards (at most to 50 to prevent exponent overflow at penalty calculation) (this cap also improves performance on worst case)
             while match_length < 50:
-                j = idx - match_length
-                k = len(input_ids_row) - match_length - 1
-                if j < 0 or k < 0:
-                    # Reached start of input
+                j = i - match_length
+                if j < 0:
+                    # Start of input reached.
                     break
 
-                if input_ids_row[j].item() != input_ids_row[k].item():
-                    # No more matches
+                previous_token = input_ids[-(match_length + 1)]
+                if input_ids[j] != previous_token:
+                    # Start of match reached.
                     break
 
-                if input_ids_row[k].item() in sequence_breakers_ids:
-                    # Hit a sequence breaker
+                if previous_token in sequence_breakers_i:
+                    # Sequence-breaking token reached.
                     break
 
                 match_length += 1
@@ -693,7 +695,6 @@ def _apply_dry(
 
         # Apply penalties based on match lengths
         allowed_length = allowed_lengths[i]
-        multiplier = multipliers[i]  
         base = bases[i]
 
         for token, match_length in match_lengths.items():
