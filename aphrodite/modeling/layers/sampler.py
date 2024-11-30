@@ -614,7 +614,8 @@ def _apply_min_tokens_penalty(
     assert logits_applied == logits.shape[0]
     return logits
 
-def _apply_dry()
+def _apply_dry(
+    # NEED TO ASK DRY RANGE FOR EFFICIENCY
     logits: torch.Tensor,
     input_ids: torch.Tensor,
     multipliers: torch.Tensor,
