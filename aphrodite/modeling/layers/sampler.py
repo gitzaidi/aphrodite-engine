@@ -614,10 +614,10 @@ def _apply_min_tokens_penalty(
     assert logits_applied == logits.shape[0]
     return logits
 
-def _apply_dry(
+def _apply_dry()
     logits: torch.Tensor,
     input_ids: torch.Tensor,
-    multipliers: torch.Tensor, 
+    multipliers: torch.Tensor,
     bases: torch.Tensor,
     allowed_lengths: torch.Tensor,
     sequence_breakers_ids: torch.Tensor
