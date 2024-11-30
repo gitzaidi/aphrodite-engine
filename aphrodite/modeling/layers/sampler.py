@@ -253,7 +253,8 @@ class Sampler(nn.Module):
                     sampling_tensors.dry_multipliers,
                     sampling_tensors.dry_bases, 
                     sampling_tensors.dry_allowed_lengths,
-                    sampling_tensors.dry_sequence_breaker_ids)
+                    sampling_tensors.dry_sequence_breaker_ids,
+                    sampling_tensors.dry_ranges)
 
             elif sampler_id == SamplerID.PENALTIES and do_penalties:
                 if (sampling_metadata.seq_groups and
@@ -621,7 +622,8 @@ def _apply_dry(
     multipliers: torch.Tensor,
     bases: torch.Tensor,
     allowed_lengths: torch.Tensor,
-    sequence_breakers_ids: torch.Tensor
+    sequence_breakers_ids: torch.Tensor,
+    _ranges: torch.Tensor
 ) -> torch.Tensor:
     """
     Apply Exclude Don't Repeat Yourself (DRY) sampling to the logits.
@@ -631,12 +633,13 @@ def _apply_dry(
     # Don't apply dry penalties if multiplier is 0
     if torch.all(multipliers == 0):
         return logits
-    
     # Process each sequence in the batch
     for i, (input_ids_row, logits_row) in enumerate(zip(input_ids, logits)):
-        multiplier = multipliers[i].item()
+        multiplier = multipliers[i]
         if multiplier == 0:
             continue  # Skip processing for this sequence
+        if _ranges[i] > 0:    
+            input_ids = input_ids[:, _ranges[i]]
         # Get the last token
         # Use normal Python data types for improved performance
         input_ids = input_ids_row.tolist()
