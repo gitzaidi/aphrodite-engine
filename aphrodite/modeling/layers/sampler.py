@@ -643,7 +643,7 @@ def _apply_dry(
         last_token = input_ids[-1]
         sequence_breakers_i = sequence_breakers[i]
         # Skip if last token is a sequence breaker
-        if last_token in :
+        if last_token in sequence_breakers_i:
             continue
 
         # Exclude the last token as it always matches.
@@ -657,8 +657,8 @@ def _apply_dry(
         match_lengths = {}
 
         # Process each match
-        for i in match_indices:
-            next_token = input_ids[i + 1]
+        for idx in match_indices:
+            next_token = input_ids[idx + 1]
             
             # Skip if next token is a sequence breaker
             if next_token in sequence_breakers_i:
@@ -670,7 +670,7 @@ def _apply_dry(
 
             # Extend the match backwards (at most to 50 to prevent exponent overflow at penalty calculation) (this cap also improves performance on worst case)
             while match_length < 50:
-                j = i - match_length
+                j = idx - match_length
                 if j < 0:
                     # Start of input reached.
                     break
